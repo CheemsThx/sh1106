@@ -53,7 +53,7 @@ where
 
         // TODO: combine with match below
         match self.display_size {
-            DisplaySize::Display64x128 => Command::DisplayOffset(0).send(&mut self.iface),
+            DisplaySize::Display64x128 => Command::DisplayOffset(0x60 - 2).send(&mut self.iface),
             DisplaySize::Display128x32
             | DisplaySize::Display128x64
             | DisplaySize::Display128x64NoOffset
