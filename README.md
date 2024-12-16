@@ -9,6 +9,12 @@ I2C driver for the SH1107 OLED display written in 100% Rust
 
 ## [Documentation](https://docs.rs/sh1107)
 
+## [Examples]
+
+This crate uses [`probe-run`](https://crates.io/crates/probe-run) to run the examples. Once set up,
+it should be as simple as `cargo run --example <example name> --release`. `--release` will be
+required for some examples to reduce FLASH usage.
+
 From [`examples/text.rs`](examples/text.rs):
 
 ```rust
@@ -51,7 +57,7 @@ fn main() -> ! {
         (scl, sda),
         &mut afio.mapr,
         Mode::Fast {
-            frequency: 400_000,
+            frequency: 100.khz().into(),
             duty_cycle: DutyCycle::Ratio2to1,
         },
         clocks,
@@ -69,12 +75,12 @@ fn main() -> ! {
 
     Text::new("Hello world!", Point::zero())
         .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
     Text::new("Hello Rust!", Point::new(0, 16))
         .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
     disp.flush().unwrap();

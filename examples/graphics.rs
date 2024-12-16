@@ -21,8 +21,7 @@ use cortex_m_rt::{entry, exception, ExceptionFrame};
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::{Circle, Line, Rectangle},
-    style::PrimitiveStyle,
+    primitives::{Circle, Line, PrimitiveStyle, Rectangle},
 };
 use panic_semihosting as _;
 use sh1107::{prelude::*, Builder};
@@ -53,7 +52,7 @@ fn main() -> ! {
         (scl, sda),
         &mut afio.mapr,
         Mode::Fast {
-            frequency: 400_000,
+            frequency: 100.khz().into(),
             duty_cycle: DutyCycle::Ratio2to1,
         },
         clocks,
@@ -64,37 +63,37 @@ fn main() -> ! {
         1000,
     );
 
-    let mut disp: GraphicsMode<_> = Builder::new().connect_i2c(i2c).into();
+    let mut display: GraphicsMode<_> = Builder::new().connect_i2c(i2c).into();
 
-    disp.init().unwrap();
-    disp.flush().unwrap();
+    display.init().unwrap();
+    display.flush().unwrap();
 
     Line::new(Point::new(8, 16 + 16), Point::new(8 + 16, 16 + 16))
         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
     Line::new(Point::new(8, 16 + 16), Point::new(8 + 8, 16))
         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
     Line::new(Point::new(8 + 16, 16 + 16), Point::new(8 + 8, 16))
         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
-    Rectangle::new(Point::new(48, 16), Point::new(48 + 16, 16 + 16))
+    Rectangle::with_corners(Point::new(48, 16), Point::new(48 + 16, 16 + 16))
         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
-    Circle::new(Point::new(96, 16 + 8), 8)
+    Circle::new(Point::new(88, 16), 16)
         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-        .draw(&mut disp)
+        .draw(&mut display)
         .unwrap();
 
-    disp.flush().unwrap();
+    display.flush().unwrap();
 
     loop {}
 }

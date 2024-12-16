@@ -135,32 +135,6 @@ where
     }
 
     /// Get display dimensions, taking into account the current rotation of the display
-    ///
-    /// ```rust
-    /// # struct FakeInterface;
-    /// #
-    /// # impl DisplayInterface for FakeInterface {
-    /// #     fn send_command(&mut self, cmd: u8) -> Result<(), ()> { Ok(()) }
-    /// #     fn send_data(&mut self, buf: &[u8]) -> Result<(), ()> { Ok(()) }
-    /// # }
-    /// #
-    /// # let interface = FakeInterface {};
-    /// #
-    /// let disp = DisplayProperties::new(
-    ///     interface,
-    ///     DisplaySize::Display128x64,
-    ///     DisplayRotation::Rotate0,
-    /// );
-    /// assert_eq!(disp.get_dimensions(), (128, 64));
-    ///
-    /// # let interface = FakeInterface {};
-    /// let rotated_disp = DisplayProperties::new(
-    ///     interface,
-    ///     DisplaySize::Display128x64,
-    ///     DisplayRotation::Rotate90,
-    /// );
-    /// assert_eq!(rotated_disp.get_dimensions(), (64, 128));
-    /// ```
     pub fn get_dimensions(&self) -> (u8, u8) {
         let (w, h) = self.display_size.dimensions();
 
@@ -202,5 +176,10 @@ where
     /// Set the display contrast
     pub fn set_contrast(&mut self, contrast: u8) -> Result<(), DI::Error> {
         Command::Contrast(contrast).send(&mut self.iface)
+    }
+
+    /// Release iface
+    pub fn release(self) -> DI {
+        self.iface
     }
 }

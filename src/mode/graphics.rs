@@ -1,17 +1,44 @@
-//! Buffered display module for use with the [embedded_graphics] crate
+//! Buffered display module for use with the [embedded-graphics] crate
 //!
-//! ```rust,ignore
-//! let i2c = /* I2C interface from your HAL of choice */;
-//! let display: GraphicsMode<_> = Builder::new().connect_i2c(i2c).into();
-//! let image = include_bytes!("image_16x16.raw");
+//! ```rust,no_run
+//! use embedded_graphics::{
+//!     pixelcolor::BinaryColor,
+//!     prelude::*,
+//!     primitives::{Circle, Line, PrimitiveStyle, Rectangle},
+//! };
+//! use sh1106::{prelude::*, Builder};
+//! # let i2c = sh1106::test_helpers::I2cStub;
+//!
+//! let mut display: GraphicsMode<_> = Builder::new().connect_i2c(i2c).into();
 //!
 //! display.init().unwrap();
 //! display.flush().unwrap();
-//! display.draw(Line::new(Coord::new(0, 0), (16, 16), 1.into()).into_iter());
-//! display.draw(Rect::new(Coord::new(24, 0), (40, 16), 1u8.into()).into_iter());
-//! display.draw(Circle::new(Coord::new(64, 8), 8, 1u8.into()).into_iter());
-//! display.draw(Image1BPP::new(image, 0, 24));
-//! display.draw(Font6x8::render_str("Hello Rust!", 1u8.into()).translate(Coord::new(24, 24)).into_iter());
+//!
+//! Line::new(Point::new(8, 16 + 16), Point::new(8 + 16, 16 + 16))
+//!     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
+//! Line::new(Point::new(8, 16 + 16), Point::new(8 + 8, 16))
+//!     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
+//! Line::new(Point::new(8 + 16, 16 + 16), Point::new(8 + 8, 16))
+//!     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
+//! Rectangle::with_corners(Point::new(48, 16), Point::new(48 + 16, 16 + 16))
+//!     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
+//! Circle::new(Point::new(88, 16), 16)
+//!     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
 //! display.flush().unwrap();
 //! ```
 
@@ -55,7 +82,7 @@ impl<DI> GraphicsMode<DI>
 where
     DI: DisplayInterface,
 {
-    /// Clear the display buffer. You need to call `disp.flush()` for any effect on the screen
+    /// Clear the display buffer. You need to call `display.flush()` for any effect on the screen
     pub fn clear(&mut self) {
         self.buffer = [0; BUFFER_SIZE];
     }
@@ -168,41 +195,47 @@ where
 }
 
 #[cfg(feature = "graphics")]
-use embedded_graphics::{
-    drawable,
+use embedded_graphics_core::{
+    draw_target::DrawTarget,
     geometry::Size,
-    pixelcolor::{
-        raw::{RawData, RawU1},
-        BinaryColor,
-    },
-    DrawTarget,
+    geometry::{Dimensions, OriginDimensions},
+    pixelcolor::BinaryColor,
+    Pixel,
 };
 
 #[cfg(feature = "graphics")]
-impl<DI> DrawTarget<BinaryColor> for GraphicsMode<DI>
+impl<DI> DrawTarget for GraphicsMode<DI>
 where
     DI: DisplayInterface,
 {
-    type Error = DI::Error;
+    type Color = BinaryColor;
+    type Error = core::convert::Infallible;
 
-    fn draw_pixel(&mut self, pixel: drawable::Pixel<BinaryColor>) -> Result<(), Self::Error> {
-        let drawable::Pixel(pos, color) = pixel;
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let bb = self.bounding_box();
 
-        // Guard against negative values. All positive i32 values from `pos` can be represented in
-        // the `u32`s that `set_pixel()` accepts...
-        if pos.x < 0 || pos.y < 0 {
-            return Ok(());
-        }
-
-        // ... which makes the `as` coercions here safe.
-        self.set_pixel(pos.x as u32, pos.y as u32, RawU1::from(color).into_inner());
+        pixels
+            .into_iter()
+            .filter(|Pixel(pos, _color)| bb.contains(*pos))
+            .for_each(|Pixel(pos, color)| {
+                self.set_pixel(pos.x as u32, pos.y as u32, color.is_on().into())
+            });
 
         Ok(())
     }
+}
 
+#[cfg(feature = "graphics")]
+impl<DI> OriginDimensions for GraphicsMode<DI>
+where
+    DI: DisplayInterface,
+{
     fn size(&self) -> Size {
         let (w, h) = self.get_dimensions();
 
-        Size::new(w as u32, h as u32)
+        Size::new(w.into(), h.into())
     }
 }
